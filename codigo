@@ -3,10 +3,9 @@
  *  No microcontrolador foi realizado toda a parte de lógica do projeto e o esquematico elétrico. 
  *  A placa envia energia para os Led, que acendem, sinalizando que está no momento de ingerir o remédio 
  *  e qual dispensar é o correto, além de enviar sinal para a buzina, para transmitir de forma auditiva, 
- *  qual o dispensar a ser coletado o remédio.
+ *  qual o dispensar a ser coletado o remédio. Além disso, há em cada dispenser, escrita em brailie para o cego identificar.
  *  Vale mencionar, que a buzina irá transmitir de forma de impulsos sonoros, exemplo, no dispensar 1, 
- *  irá ser emitir som, uma vez, no dispensar 2, duas vezes, assim por diante. Além disso, há em cada dispenser, 
- *  escrita em brillie para o cego identificar. Após disso, irá receber informação do usuário que foi coletado o remédio, 
+ *  irá ser emitir som, uma vez, no dispensar 2, duas vezes, assim por diante. Após disso, irá receber informação do usuário que foi coletado o remédio, 
  *  através do botão táctil 6x6x5mm – 2 Terminais colado em cada dispensar, cesando a buzina.
  *  
  *  TINKERCAD
