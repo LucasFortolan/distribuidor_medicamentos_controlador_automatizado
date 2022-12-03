@@ -1,0 +1,233 @@
+/* DESCRIÇÃO DO FUNCIONAMENTO
+ *  Em cada um dos 4 dispenser foi colocado mini-proboard e realizado a ligação de um botão e um led. 
+ *  No microcontrolador foi realizado toda a parte de lógica do projeto e o esquematico elétrico. 
+ *  A placa envia energia para os Led, que acendem, sinalizando que está no momento de ingerir o remédio 
+ *  e qual dispensar é o correto, além de enviar sinal para a buzina, para transmitir de forma auditiva, 
+ *  qual o dispensar a ser coletado o remédio.
+ *  Vale mencionar, que a buzina irá transmitir de forma de impulsos sonoros, exemplo, no dispensar 1, 
+ *  irá ser emitir som, uma vez, no dispensar 2, duas vezes, assim por diante. Além disso, há em cada dispenser, 
+ *  escrita em brillie para o cego identificar. Após disso, irá receber informação do usuário que foi coletado o remédio, 
+ *  através do botão táctil 6x6x5mm – 2 Terminais colado em cada dispensar, cesando a buzina.
+ *  
+ *  TINKERCAD
+ *  https://www.tinkercad.com/things/h2oY4E1KP5X
+ */
+ 
+// Define novo nome para as portas 
+#define led_1 3
+#define led_2 4
+#define led_3 5
+#define led_4 6
+
+#define buzzer 7
+
+#define botao_1 8
+#define botao_2 9
+#define botao_3 10
+#define botao_4 11
+
+// Horário dos remédios
+// É necessário transformar de hora para milissegundos 
+//unsigned long = 60*60*1000; //Utilizado na pratica
+unsigned long hora = 10*1000; // Utilizado em testes
+// Expressar em hora:
+unsigned long rem_1 = 1.5;
+unsigned long rem_2 = 3;
+unsigned long rem_3 = 4.5;
+unsigned long rem_4 = 6;
+
+// Define o tempo no momento que será utilizado
+float tempo = 0;
+
+// Serve como um banco de dados, para transmitir para
+// o cuidador que o usuario tomou o remedio
+unsigned long matriz_tempo[40];
+int indice = 0;
+
+// Caso o paciente não clique no botão a bozina irá continuar instruindo para ele
+// Lembrar que quando trabalha com vetor, você define a quantidade de espaços
+int alertar[4];
+
+// Verifica qual botao deve ser clicado para liberar a bozina
+int botao[4];
+
+// Serve para permitir que seja corrigido o laco entre mills e rem_
+unsigned long continua [4];
+
+// Quantas vezes ira buzinar para sinalizar o dispensar
+int n_dispensar = 0;
+// Ainda não foi clicado no botão, continue emitindo som
+int naoclicou = 0;
+
+
+void setup() {
+  // Define os botões como entrada
+  pinMode(botao_1,INPUT_PULLUP);
+  pinMode(botao_2,INPUT_PULLUP);
+  pinMode(botao_3,INPUT_PULLUP);
+  pinMode(botao_4,INPUT_PULLUP);
+  // Define os led's como saída
+  pinMode(led_1, OUTPUT);
+  pinMode(led_2, OUTPUT);
+  pinMode(led_3, OUTPUT);
+  pinMode(led_4, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  // Define os led's como desligados
+  digitalWrite(led_1,LOW);
+  digitalWrite(led_2,LOW);
+  digitalWrite(led_3,LOW);
+  digitalWrite(led_4,LOW);
+  // Inicializa a comunicação serial a uma taxa de 9600
+  Serial.begin(9600);
+  rem_1 = rem_1*hora;
+  rem_2 = rem_2*hora;
+  rem_3 = rem_3*hora;
+  rem_4 = rem_4*hora;
+  // Garantindo que os dados no vetor seja 0
+  continua[0] = 0;
+  continua[1] = 0;
+  continua[2] = 0;
+  continua[3] = 0;
+}
+
+void buzzina_on_off()
+{ 
+  unsigned long agora = 0;
+  // Cada vez que for liga e desligada, irá num curto intervalo 
+  // de irá significar qual dispensar é o correto
+  int c = 0;
+  for(c = 0; c < n_dispensar; c++)
+  {
+    agora = millis();
+    digitalWrite(buzzer,HIGH);
+    while(millis() < agora + 200.0 and c < n_dispensar)
+    {
+      if(digitalRead(botao_1) == LOW and botao[0] == 1) {c = n_dispensar;}
+      if(digitalRead(botao_2) == LOW and botao[1] == 1) {c = n_dispensar;}
+      if(digitalRead(botao_3) == LOW and botao[2] == 1) {c = n_dispensar;}
+      if(digitalRead(botao_4) == LOW and botao[3] == 1) {c = n_dispensar;}
+    }
+    digitalWrite(buzzer,LOW);
+    agora = millis();
+    while((millis() < agora + 200.0) and c < n_dispensar)
+    {
+      if(digitalRead(botao_1) == LOW and botao[0] == 1) {c = n_dispensar;}
+      if(digitalRead(botao_2) == LOW and botao[1] == 1) {c = n_dispensar;}
+      if(digitalRead(botao_3) == LOW and botao[2] == 1) {c = n_dispensar;}
+      if(digitalRead(botao_4) == LOW and botao[3] == 1) {c = n_dispensar;}
+    }
+  }
+  agora = millis();
+  digitalWrite(buzzer,LOW);
+  while(millis() < (agora + 2000.0))
+  {
+    if(digitalRead(botao_1) == LOW and botao[0] == 1) {break;}
+    if(digitalRead(botao_2) == LOW and botao[1] == 1) {break;}
+    if(digitalRead(botao_3) == LOW and botao[2] == 1) {break;}
+    if(digitalRead(botao_4) == LOW and botao[3] == 1) {break;}
+  }
+}
+
+void led_off()
+{
+  // Desliga todos os leds
+  digitalWrite(led_1,LOW);
+  digitalWrite(led_2,LOW);
+  digitalWrite(led_3,LOW);
+  digitalWrite(led_4,LOW);
+}
+
+// Armazena quando o usuario tomou os remedios 
+void banco_dados()
+{
+  Serial.println("---------");
+  Serial.println("Banco de Dados");
+    for (int i=0; i < (indice+1); i++)
+  {
+     Serial.print("Remedio do dispensar de ");
+     Serial.print(matriz_tempo[i]/hora);
+     Serial.println("h, eu tomei.");
+  }
+  Serial.println("---------");
+  indice++;
+}
+void loop() 
+{
+  led_off();
+  while ((millis()-continua[0]) >= (rem_1) and (millis()-continua[0]) <= (rem_1 + hora*0.5) or naoclicou == 1)
+  { 
+    // Redundância, garantindo que esteja desligado
+    led_off();
+    // Liga o led para sinalizar qual dispensar esta o remedio 
+    digitalWrite(led_1,HIGH);
+    // Ira ser chamado esta função de acordo com o Nº do dispenser
+    n_dispensar = 1;
+    // Definie qual botao deve ser acionado
+    botao[0] = 1;
+    naoclicou = 1;
+    buzzina_on_off();
+    if (digitalRead(botao_1) == LOW)
+    {
+      matriz_tempo[indice] = rem_1;
+      banco_dados();
+      digitalWrite(buzzer,LOW);
+      naoclicou = 0;
+      botao[0] = 0;
+      continua[0] = millis();
+    }
+  }
+  while ((millis()-continua[1]) >= (rem_2) and (millis()-continua[1]) <= (rem_2 + hora*0.5) or naoclicou == 1)
+  { 
+    led_off();
+    digitalWrite(led_2,HIGH);
+    n_dispensar = 2;
+    botao[1] = 1;
+    naoclicou = 1;
+    buzzina_on_off();
+    if (digitalRead(botao_2) == LOW)
+    {
+      matriz_tempo[indice] = rem_2;
+      banco_dados();
+      digitalWrite(buzzer,LOW);
+      naoclicou = 0;
+      botao[1] = 0;
+      continua[1] = millis();
+    }
+  }
+  while ((millis()-continua[2]) >= (rem_3) and (millis()-continua[2]) <= (rem_3 + hora*0.5) or naoclicou == 1)
+  { 
+    led_off();
+    digitalWrite(led_3,HIGH);
+    n_dispensar = 3;
+    botao[2] = 1;
+    naoclicou = 1;
+    buzzina_on_off();
+    if (digitalRead(botao_3) == LOW)
+    {
+      matriz_tempo[indice] = rem_3;
+      banco_dados();
+      digitalWrite(buzzer,LOW);
+      naoclicou = 0;
+      botao[2] = 0;
+      continua[2] = millis();
+    }
+  }
+  while ((millis()-continua[3]) >= (rem_4) and (millis()-continua[3]) <= (rem_4 + hora*0.5) or naoclicou == 1)
+  { 
+    led_off();
+    digitalWrite(led_4,HIGH);
+    n_dispensar = 4;
+    botao[3] = 1;
+    naoclicou = 1;
+    buzzina_on_off();
+    if (digitalRead(botao_4) == LOW)
+    {
+      matriz_tempo[indice] = rem_4;
+      banco_dados();
+      digitalWrite(buzzer,LOW);
+      naoclicou = 0;
+      botao[3] = 0;
+      continua[3] = millis();
+    }
+  }
+}
